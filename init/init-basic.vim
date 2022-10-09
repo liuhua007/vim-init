@@ -41,6 +41,26 @@ set ttimeoutlen=50
 " 显示光标位置
 set ruler
 
+" 高亮光标所在的列
+set cursorcolumn
+
+" 高亮光标所在的行
+set cursorline
+
+" 映射leader键
+let mapleader="\<Space>"
+
+" 换行提示线
+set colorcolumn=80
+
+" 支持鼠标操作
+set mouse=a
+
+if has("mouse_sgr")
+	set ttymouse=sgr
+else
+	set ttymouse=xterm2
+end
 
 "----------------------------------------------------------------------
 " 搜索设置
