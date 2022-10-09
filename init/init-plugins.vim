@@ -14,9 +14,13 @@
 " 默认情况下的分组，可以再前面覆盖之
 "----------------------------------------------------------------------
 if !exists('g:bundle_group')
-	let g:bundle_group = ['basic', 'tags', 'enhanced', 'filetypes', 'textobj']
-	let g:bundle_group += ['tags', 'airline', 'nerdtree', 'ale', 'echodoc']
+	let g:bundle_group = ['basic', 'enhanced', 'filetypes', 'textobj']
+	"let g:bundle_group += ['tags']
+	let g:bundle_group += ['airline', 'nerdtree', 'ale', 'echodoc']
 	let g:bundle_group += ['leaderf']
+	let g:bundle_group += ['open-browser', 'plantuml']
+	let g:bundle_group += ['lspclient']
+	let g:bundle_group += ['youdao-translater']
 endif
 
 
@@ -97,6 +101,9 @@ if index(g:bundle_group, 'basic') >= 0
 	" 一次性安装一大堆 colorscheme
 	Plug 'flazz/vim-colorschemes'
 
+	" gruvbox主题
+	Plug 'morhetz/gruvbox'
+
 	" 支持库，给其他插件用的函数库
 	Plug 'xolox/vim-misc'
 
@@ -141,6 +148,7 @@ if index(g:bundle_group, 'basic') >= 0
 	let g:signify_vcs_cmds = {
 			\ 'git': 'git diff --no-color --diff-algorithm=histogram --no-ext-diff -U0 -- %f',
 			\}
+	autocmd vimenter * ++nested colorscheme gruvbox
 endif
 
 
@@ -311,10 +319,11 @@ if index(g:bundle_group, 'nerdtree') >= 0
 	let g:NERDTreeMinimalUI = 1
 	let g:NERDTreeDirArrows = 1
 	let g:NERDTreeHijackNetrw = 0
-	noremap <space>nn :NERDTree<cr>
-	noremap <space>no :NERDTreeFocus<cr>
-	noremap <space>nm :NERDTreeMirror<cr>
-	noremap <space>nt :NERDTreeToggle<cr>
+	noremap <leader>nn :NERDTree<cr>
+	noremap <leader>nf :NERDTreeFind<cr>
+	noremap <leader>no :NERDTreeFocus<cr>
+	noremap <leader>nm :NERDTreeMirror<cr>
+	noremap <leader>nt :NERDTreeToggle<cr>
 endif
 
 
@@ -418,7 +427,7 @@ endif
 if index(g:bundle_group, 'leaderf') >= 0
 	" 如果 vim 支持 python 则启用  Leaderf
 	if has('python') || has('python3')
-		Plug 'Yggdroot/LeaderF'
+		Plug 'Yggdroot/LeaderF', {'do': ':LeaderfInstallCExtension'}
 
 		" CTRL+p 打开文件模糊匹配
 		let g:Lf_ShortcutF = '<c-p>'
@@ -441,6 +450,19 @@ if index(g:bundle_group, 'leaderf') >= 0
 		" ALT+m 全局 tags 模糊匹配
 		noremap <m-m> :LeaderfTag<cr>
 
+        " <leader>+ff 查找文件
+		noremap <leader>ff :<C-U><C-R>=printf("Leaderf file %s", "")<cr><cr>
+		" <leader>+fl 在buffer中查找某行
+		noremap <leader>fl :<C-U><C-R>=printf("Leaderf line %")<cr><cr>
+		" <leaderf>+ffn 打开函数列表（跟ALT+p 是等价的）
+		noremap <leader>ffn :<C-U><C-R>=printf("Leaderf function %")<cr><cr>
+		" 用<leaderf>+fw 查找在指定类型的文件中查找关键字
+		noremap <leader>fw :<C-U><C-R>=printf("Leaderf --bottom rg -t cpp -t c -t java -e %s", expand("<cword>"))<CR><CR>
+		" 用<leaderf>+fk 提出用户输入关键字，在指定类型的文件中进行查找
+		noremap <leader>fk :<C-U><C-R>=printf("Leaderf --popup rg -t cpp -t c -t java %s", "")<CR>
+		" 回顾上次的搜索。如果结果窗口已关闭，将重新打开它。
+		noremap <leader>fr :<C-U>Leaderf --recal<CR>
+
 		" 最大历史文件保存 2048 个
 		let g:Lf_MruMaxFiles = 2048
 
@@ -462,7 +484,7 @@ if index(g:bundle_group, 'leaderf') >= 0
 		" 模糊匹配忽略扩展名
 		let g:Lf_WildIgnore = {
 					\ 'dir': ['.svn','.git','.hg'],
-					\ 'file': ['*.sw?','~$*','*.bak','*.exe','*.o','*.so','*.py[co]']
+					\ 'file': ['*.sw?','~$*','*.bak','*.exe','*.o','*.so','*.py[co]','*.idx']
 					\ }
 
 		" MRU 文件忽略扩展名
@@ -482,6 +504,27 @@ if index(g:bundle_group, 'leaderf') >= 0
 				\ "Function": [["<ESC>", ':exec g:Lf_py "functionExplManager.quit()"<cr>']],
 				\ }
 
+		let g:Lf_UseCache = 0
+		let g:Lf_UseMemoryCache = 0
+		" 在弹出窗口预览结果
+		let g:Lf_PreviewInPopup = 1
+
+		" 通过上下键来导航查询结果列表
+		let g:Lf_CommandMap = {'<C-K>': ['<Up>'], '<C-J>': ['<Down>']}
+
+		" 是否支持预览
+		let g:Lf_PreviewResult = {
+			\ 'File': 1,
+			\ 'Buffer': 0,
+			\ 'Mru': 0,
+			\ 'Tag': 0,
+			\ 'BufTag': 1,
+			\ 'Function': 1,
+			\ 'Line': 1,
+			\ 'Colorscheme': 0,
+			\ 'Rg': 1,
+			\ 'Gtags': 0
+		\}
 	else
 		" 不支持 python ，使用 CtrlP 代替
 		Plug 'ctrlpvim/ctrlp.vim'
@@ -515,8 +558,200 @@ if index(g:bundle_group, 'leaderf') >= 0
 		" ALT+n 匹配 buffer
 		noremap <m-n> :CtrlPBuffer<cr>
 	endif
+	Plug 'linjiX/LeaderF-git'
 endif
 
+"----------------------------------------------------------------------
+" open-browser：用你最喜欢的浏览器从vim打开URI
+"----------------------------------------------------------------------
+if index(g:bundle_group, 'open-browser') >= 0
+	Plug 'tyru/open-browser.vim'
+	nmap oo <Plug>(openbrowser-open)
+endif
+
+"----------------------------------------------------------------------
+" plantuml：预览PlantUML
+"----------------------------------------------------------------------
+if index(g:bundle_group, 'plantuml') >= 0
+	Plug 'aklt/plantuml-syntax'
+	Plug 'weirongxu/plantuml-previewer.vim'
+endif
+
+"----------------------------------------------------------------------
+" coc.nvim：加载扩展，如VSCode和主机语言服务器
+"----------------------------------------------------------------------
+if index(g:bundle_group, 'lspclient') >= 0
+	Plug 'neoclide/coc.nvim', {'branch': 'release'}
+
+	" Some servers have issues with backup files, see #649.
+	set nobackup
+	set nowritebackup
+
+	" Having longer updatetime (default is 4000 ms = 4 s) leads to noticeable
+	" delays and poor user experience.
+	set updatetime=300
+
+	" Always show the signcolumn, otherwise it would shift the text each time
+	" diagnostics appear/become resolved.
+	set signcolumn=yes
+
+	" Use tab for trigger completion with characters ahead and navigate.
+	" NOTE: There's always complete item selected by default, you may want to enable
+	" no select by `"suggest.noselect": true` in your configuration file.
+	" NOTE: Use command ':verbose imap <tab>' to make sure tab is not mapped by
+	" other plugin before putting this into your config.
+	inoremap <silent><expr> <TAB>
+		\ coc#pum#visible() ? coc#pum#next(1) :
+		\ CheckBackspace() ? "\<Tab>" :
+		\ coc#refresh()
+	inoremap <expr><S-TAB> coc#pum#visible() ? coc#pum#prev(1) : "\<C-h>"
+
+	" Make <CR> to accept selected completion item or notify coc.nvim to format
+	" <C-g>u breaks current undo, please make your own choice.
+	inoremap <silent><expr> <CR> coc#pum#visible() ? coc#pum#confirm()
+                              \: "\<C-g>u\<CR>\<c-r>=coc#on_enter()\<CR>"
+
+	function! CheckBackspace() abort
+		let col = col('.') - 1
+		return !col || getline('.')[col - 1]  =~# '\s'
+	endfunction
+
+	" Use <c-space> to trigger completion.
+	if has('nvim')
+		inoremap <silent><expr> <c-space> coc#refresh()
+	else
+		inoremap <silent><expr> <c-@> coc#refresh()
+	endif
+
+	" Use `[g` and `]g` to navigate diagnostics
+	" Use `:CocDiagnostics` to get all diagnostics of current buffer in location list.
+	nmap <silent> [g <Plug>(coc-diagnostic-prev)
+	nmap <silent> ]g <Plug>(coc-diagnostic-next)
+
+	" GoTo code navigation.
+	nmap <silent> gd <Plug>(coc-definition)
+	nmap <silent> gy <Plug>(coc-type-definition)
+	nmap <silent> gi <Plug>(coc-implementation)
+	nmap <silent> gr <Plug>(coc-references)
+	nmap <silent> gu <Plug>(coc-references-used)
+
+	noremap <silent> gdv :call CocAction('jumpDefinition', 'vsplit')<CR>
+	noremap <silent> gyv :call CocAction('jumpTypeDefinition', 'vsplit')<CR>
+	noremap <silent> giv :call CocAction('jumpImplementation', 'vsplit')<CR>
+	noremap <silent> grv :call CocAction('jumpReferences', 'vsplit')<CR>
+	noremap <silent> guv :call CocAction('jumpUsed', 'vsplit')<CR>
+
+	" Use K to show documentation in preview window.
+	nnoremap <silent> K :call ShowDocumentation()<CR>
+
+	function! ShowDocumentation()
+	if CocAction('hasProvider', 'hover')
+		call CocActionAsync('doHover')
+	else
+		call feedkeys('K', 'in')
+	endif
+	endfunction
+
+	" Highlight the symbol and its references when holding the cursor.
+	autocmd CursorHold * silent call CocActionAsync('highlight')
+
+	" Symbol renaming.
+	nmap <leader>rn <Plug>(coc-rename)
+
+	" Formatting selected code.
+	xmap <leader>f  <Plug>(coc-format-selected)
+	nmap <leader>f  <Plug>(coc-format-selected)
+
+	augroup mygroup
+		autocmd!
+		" Setup formatexpr specified filetype(s).
+		autocmd FileType typescript,json setl formatexpr=CocAction('formatSelected')
+		" Update signature help on jump placeholder.
+		autocmd User CocJumpPlaceholder call CocActionAsync('showSignatureHelp')
+	augroup end
+
+	" Applying codeAction to the selected region.
+	" Example: `<leader>aap` for current paragraph
+	xmap <leader>a  <Plug>(coc-codeaction-selected)
+	nmap <leader>a  <Plug>(coc-codeaction-selected)
+
+	" Remap keys for applying codeAction to the current buffer.
+	nmap <leader>ac  <Plug>(coc-codeaction)
+	" Apply AutoFix to problem on the current line.
+	nmap <leader>qf  <Plug>(coc-fix-current)
+
+	" Run the Code Lens action on the current line.
+	nmap <leader>cl  <Plug>(coc-codelens-action)
+
+	" Map function and class text objects
+	" NOTE: Requires 'textDocument.documentSymbol' support from the language server.
+	xmap if <Plug>(coc-funcobj-i)
+	omap if <Plug>(coc-funcobj-i)
+	xmap af <Plug>(coc-funcobj-a)
+	omap af <Plug>(coc-funcobj-a)
+	xmap ic <Plug>(coc-classobj-i)
+	omap ic <Plug>(coc-classobj-i)
+	xmap ac <Plug>(coc-classobj-a)
+	omap ac <Plug>(coc-classobj-a)
+
+	" Remap <C-f> and <C-b> for scroll float windows/popups.
+	if has('nvim-0.4.0') || has('patch-8.2.0750')
+		nnoremap <silent><nowait><expr> <C-f> coc#float#has_scroll() ? coc#float#scroll(1) : "\<C-f>"
+		nnoremap <silent><nowait><expr> <C-b> coc#float#has_scroll() ? coc#float#scroll(0) : "\<C-b>"
+		inoremap <silent><nowait><expr> <C-f> coc#float#has_scroll() ? "\<c-r>=coc#float#scroll(1)\<cr>" : "\<Right>"
+		inoremap <silent><nowait><expr> <C-b> coc#float#has_scroll() ? "\<c-r>=coc#float#scroll(0)\<cr>" : "\<Left>"
+		vnoremap <silent><nowait><expr> <C-f> coc#float#has_scroll() ? coc#float#scroll(1) : "\<C-f>"
+		vnoremap <silent><nowait><expr> <C-b> coc#float#has_scroll() ? coc#float#scroll(0) : "\<C-b>"
+	endif
+
+	" Use CTRL-S for selections ranges.
+	" Requires 'textDocument/selectionRange' support of language server.
+	nmap <silent> <C-s> <Plug>(coc-range-select)
+	xmap <silent> <C-s> <Plug>(coc-range-select)
+
+	" Add `:Format` command to format current buffer.
+	command! -nargs=0 Format :call CocActionAsync('format')
+
+	" Add `:Fold` command to fold current buffer.
+	command! -nargs=? Fold :call     CocAction('fold', <f-args>)
+
+	" Add `:OR` command for organize imports of the current buffer.
+	command! -nargs=0 OR   :call     CocActionAsync('runCommand', 'editor.action.organizeImport')
+
+	" Add (Neo)Vim's native statusline support.
+	" NOTE: Please see `:h coc-status` for integrations with external plugins that
+	" provide custom statusline: lightline.vim, vim-airline.
+	set statusline^=%{coc#status()}%{get(b:,'coc_current_function','')}
+
+	" Mappings for CoCList
+	" Show all diagnostics.
+	nnoremap <silent><nowait> <space>a  :<C-u>CocList diagnostics<cr>
+	" Manage extensions.
+	nnoremap <silent><nowait> <space>e  :<C-u>CocList extensions<cr>
+	" Show commands.
+	nnoremap <silent><nowait> <space>c  :<C-u>CocList commands<cr>
+	" Find symbol of current document.
+	nnoremap <silent><nowait> <space>o  :<C-u>CocList outline<cr>
+	" Search workspace symbols.
+	nnoremap <silent><nowait> <space>s  :<C-u>CocList -I symbols<cr>
+	" Do default action for next item.
+	nnoremap <silent><nowait> <space>j  :<C-u>CocNext<CR>
+	" Do default action for previous item.
+	nnoremap <silent><nowait> <space>k  :<C-u>CocPrev<CR>
+	" Resume latest coc list.
+	nnoremap <silent><nowait> <space>p  :<C-u>CocListResume<CR>
+endif
+
+"----------------------------------------------------------------------
+" youdao-translater：利用 有道词典在线版 制作的vim插件，可以vim 中翻译单词或语句
+"----------------------------------------------------------------------
+if index(g:bundle_group, 'youdao-translater') >= 0
+	Plug 'ianva/vim-youdao-translater'
+	vnoremap <silent> <C-T> :<C-u>Ydv<CR>
+	nnoremap <silent> <C-T> :<C-u>Ydc<CR>
+	" 提示用户输入单词，按下回车之后，显示翻译结果
+	noremap <leader>yd :<C-u>Yde<CR>
+endif
 
 "----------------------------------------------------------------------
 " 结束插件安装
